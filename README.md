@@ -1,0 +1,1 @@
+terraform을 이용하여 일별 aws요금 내역을 관리자 이메일로 보내주는 AWS RESOURCE 생성
