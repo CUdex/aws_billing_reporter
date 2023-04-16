@@ -137,7 +137,7 @@ resource "aws_glue_crawler" "cur_s3_crawler" {
   database_name = aws_glue_catalog_database.billing_database.name
   name          = "cur_s3_crawler"
   role          = aws_iam_role.glue_crawler_role.arn
-  schedule      = "cron(0 */1 * * ? *)"
+  schedule      = "cron(0 1 * * ? *)"
 
   s3_target {
     path = "s3://${aws_s3_bucket.billing_report_bucket.bucket}"
@@ -161,6 +161,43 @@ resource "aws_iam_role" "glue_crawler_role" {
     ]})
 }
 
+resource "aws_iam_role_policy" "glue_log_policy" {
+  name   = "glue-log-policy"
+  role = aws_iam_role.glue_crawler_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup", 
+          "logs:CreateLogStream",
+          "logs:AssociateKmsKey",
+          "logs:DescribeLogStreams"
+          ]
+        Effect = "Allow"
+        Resource = ["arn:aws:logs:*:*:*"]
+      },
+      {
+        Action = [
+          "glue:GetDatabase",
+          "glue:GetDatabases",
+          "glue:CreateDatabase",
+          "glue:UpdateDatabase",
+          "glue:GetTable",
+          "glue:GetTables",
+          "glue:CreateTable",
+          "glue:UpdateTable"
+        ]
+        Effect   = "Allow"
+        Resource = ["arn:aws:glue:*:*:*"]
+      }
+    ]
+  })
+}
+
+# crawler role에 S3FullAccess 정책 추가
 resource "aws_iam_role_policy_attachment" "glue_crawler_s3_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
   role       = aws_iam_role.glue_crawler_role.name
