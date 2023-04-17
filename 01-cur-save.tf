@@ -97,6 +97,7 @@ resource "aws_cur_report_definition" "cur_report_definition" {
   s3_region                  = aws_s3_bucket.billing_report_bucket.region
   s3_prefix                  = "cur-prefix"
   report_versioning          = "OVERWRITE_REPORT"
+  additional_artifacts       = ["ATHENA"]
 }
 
 # AWS Glue 데이터 카탈로그 생성
