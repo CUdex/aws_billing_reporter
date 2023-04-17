@@ -96,6 +96,7 @@ resource "aws_cur_report_definition" "cur_report_definition" {
   s3_bucket                  = aws_s3_bucket.billing_report_bucket.bucket
   s3_region                  = aws_s3_bucket.billing_report_bucket.region
   s3_prefix                  = "cur-prefix"
+  report_versioning          = "OVERWRITE_REPORT"
 }
 
 # AWS Glue 데이터 카탈로그 생성
@@ -141,6 +142,11 @@ resource "aws_glue_crawler" "cur_s3_crawler" {
 
   s3_target {
     path = "s3://${aws_s3_bucket.billing_report_bucket.bucket}"
+    exclusions = [ 
+      "**.yml",
+      "**.csv",
+      "**/cost_and_usage_data_status/**"
+       ]
   }
 }
 
@@ -181,14 +187,7 @@ resource "aws_iam_role_policy" "glue_log_policy" {
       },
       {
         Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:CreateDatabase",
-          "glue:UpdateDatabase",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:CreateTable",
-          "glue:UpdateTable"
+          "glue:*"
         ]
         Effect   = "Allow"
         Resource = ["arn:aws:glue:*:*:*"]
