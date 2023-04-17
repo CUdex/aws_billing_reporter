@@ -11,7 +11,7 @@ provider "aws" {
 
 
 resource "aws_s3_bucket" "billing_report_bucket" {
-  bucket = "billing-report-bucket-name"
+  bucket = "billing-report-bucket-genians"
   tags = {
     Name        = "Billing Report Bucket"
   }
@@ -95,7 +95,7 @@ resource "aws_cur_report_definition" "cur_report_definition" {
   additional_schema_elements = ["RESOURCES"]
   s3_bucket                  = aws_s3_bucket.billing_report_bucket.bucket
   s3_region                  = aws_s3_bucket.billing_report_bucket.region
-  s3_prefix                  = "cur_report"
+  s3_prefix                  = "cur-prefix"
 }
 
 # AWS Glue 데이터 카탈로그 생성
@@ -103,34 +103,34 @@ resource "aws_glue_catalog_database" "billing_database" {
   name = "billing_database"
 }
 
-resource "aws_glue_catalog_table" "billing_table" {
-  name = "billing_table"
-  database_name = aws_glue_catalog_database.billing_database.name
-  table_type = "EXTERNAL_TABLE"
+# resource "aws_glue_catalog_table" "billing_table" {
+#   name = "billing_table"
+#   database_name = aws_glue_catalog_database.billing_database.name
+#   table_type = "EXTERNAL_TABLE"
 
-  storage_descriptor {
-    location = "${aws_s3_bucket.billing_report_bucket.bucket}/billing_report/"
-    input_format = "org.apache.hadoop.mapred.TextInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
-    compressed = true
-    number_of_buckets = 1
-    ser_de_info {
-      name = "billing_ser_de"
-      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
-      parameters = {
-        "serialization.format" = "1"
-      }
-    }
-    columns {
-      name = "invoice_id"
-      type = "string"
-    }
-    columns {
-      name = "payer_account_id"
-      type = "string"
-    }
-  }
-}
+#   storage_descriptor {
+#     location = "${aws_s3_bucket.billing_report_bucket.bucket}/billing_report/"
+#     input_format = "org.apache.hadoop.mapred.TextInputFormat"
+#     output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
+#     compressed = true
+#     number_of_buckets = 1
+#     ser_de_info {
+#       name = "billing_ser_de"
+#       serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+#       parameters = {
+#         "serialization.format" = "1"
+#       }
+#     }
+#     columns {
+#       name = "invoice_id"
+#       type = "string"
+#     }
+#     columns {
+#       name = "payer_account_id"
+#       type = "string"
+#     }
+#   }
+# }
 
 # crawler 생성
 resource "aws_glue_crawler" "cur_s3_crawler" {
