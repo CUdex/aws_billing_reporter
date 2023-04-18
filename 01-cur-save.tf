@@ -9,7 +9,7 @@ provider "aws" {
     secret_key = var.test_secret_key
 }
 
-
+# 버킷 생성
 resource "aws_s3_bucket" "billing_report_bucket" {
   bucket = "billing-report-bucket-genians"
   tags = {
@@ -17,11 +17,13 @@ resource "aws_s3_bucket" "billing_report_bucket" {
   }
 }
 
+# 버킷 acl 생성
 resource "aws_s3_bucket_acl" "bucket_acl_private" {
   bucket = aws_s3_bucket.billing_report_bucket.id
   acl    = "private"
 }
 
+#report 정의
 resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
   bucket = aws_s3_bucket.billing_report_bucket.id
 
@@ -92,47 +94,17 @@ resource "aws_cur_report_definition" "cur_report_definition" {
   time_unit                  = "HOURLY"
   format                     = "Parquet"
   compression                = "Parquet"
-  additional_schema_elements = ["RESOURCES"]
+  additional_schema_elements = []
   s3_bucket                  = aws_s3_bucket.billing_report_bucket.bucket
   s3_region                  = aws_s3_bucket.billing_report_bucket.region
-  s3_prefix                  = "cur-prefix"
+  s3_prefix                  = "reportresult"
   report_versioning          = "OVERWRITE_REPORT"
-  additional_artifacts       = ["ATHENA"]
 }
 
 # AWS Glue 데이터 카탈로그 생성
 resource "aws_glue_catalog_database" "billing_database" {
   name = "billing_database"
 }
-
-# resource "aws_glue_catalog_table" "billing_table" {
-#   name = "billing_table"
-#   database_name = aws_glue_catalog_database.billing_database.name
-#   table_type = "EXTERNAL_TABLE"
-
-#   storage_descriptor {
-#     location = "${aws_s3_bucket.billing_report_bucket.bucket}/billing_report/"
-#     input_format = "org.apache.hadoop.mapred.TextInputFormat"
-#     output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
-#     compressed = true
-#     number_of_buckets = 1
-#     ser_de_info {
-#       name = "billing_ser_de"
-#       serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
-#       parameters = {
-#         "serialization.format" = "1"
-#       }
-#     }
-#     columns {
-#       name = "invoice_id"
-#       type = "string"
-#     }
-#     columns {
-#       name = "payer_account_id"
-#       type = "string"
-#     }
-#   }
-# }
 
 # crawler 생성
 resource "aws_glue_crawler" "cur_s3_crawler" {
@@ -146,7 +118,11 @@ resource "aws_glue_crawler" "cur_s3_crawler" {
     exclusions = [ 
       "**.yml",
       "**.csv",
-      "**/cost_and_usage_data_status/**"
+      "**/cost_and_usage_data_status/**",
+      "**.sql",
+      "**.json",
+      "**.gz",
+      "**.zip"
        ]
   }
 }
