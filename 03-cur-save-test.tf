@@ -1,31 +1,20 @@
-variable "test_region" {}
-variable "billing_region" {}
-variable "test_access_key" {}
-variable "test_secret_key" {}
-
-provider "aws" {
-    region = var.billing_region
-    access_key = var.test_access_key
-    secret_key = var.test_secret_key
-}
-
 # 버킷 생성
-resource "aws_s3_bucket" "billing_report_bucket" {
-  bucket = "billing-report-bucket-genians"
+resource "aws_s3_bucket" "billing_report_bucket_test" {
+  bucket = "billing-report-bucket-genians-test"
   tags = {
     Name        = "Billing Report Bucket"
   }
 }
 
 # 버킷 acl 생성
-resource "aws_s3_bucket_acl" "bucket_acl_private" {
-  bucket = aws_s3_bucket.billing_report_bucket.id
+resource "aws_s3_bucket_acl" "bucket_acl_private_test" {
+  bucket = aws_s3_bucket.billing_report_bucket_test.bucket
   acl    = "private"
 }
 
 #report 정의
-resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
-  bucket = aws_s3_bucket.billing_report_bucket.id
+resource "aws_s3_bucket_policy" "billing_report_bucket_policy_test" {
+  bucket = aws_s3_bucket.billing_report_bucket_test.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -44,8 +33,8 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "athena.amazonaws.com"
         }
         Resource  = [
-          "${aws_s3_bucket.billing_report_bucket.arn}",
-          "${aws_s3_bucket.billing_report_bucket.arn}/*"
+          "${aws_s3_bucket.billing_report_bucket_test.arn}",
+          "${aws_s3_bucket.billing_report_bucket_test.arn}/*"
         ]
       },
       {
@@ -62,8 +51,8 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "billingreports.amazonaws.com"
         }
         Resource  = [
-          "${aws_s3_bucket.billing_report_bucket.arn}",
-          "${aws_s3_bucket.billing_report_bucket.arn}/*"
+          "${aws_s3_bucket.billing_report_bucket_test.arn}",
+          "${aws_s3_bucket.billing_report_bucket_test.arn}/*"
         ]
       },
       {
@@ -80,8 +69,8 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "glue.amazonaws.com"
         }
         Resource  = [
-          "${aws_s3_bucket.billing_report_bucket.arn}",
-          "${aws_s3_bucket.billing_report_bucket.arn}/*"
+          "${aws_s3_bucket.billing_report_bucket_test.arn}",
+          "${aws_s3_bucket.billing_report_bucket_test.arn}/*"
         ]
       }
     ]
@@ -89,32 +78,32 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
 }
 
 # AWS Billing Report 생성
-resource "aws_cur_report_definition" "cur_report_definition" {
-  report_name                = "cur-report"
-  time_unit                  = "DAILY"
+resource "aws_cur_report_definition" "cur_report_definition_test" {
+  report_name                = "cur-report-test"
+  time_unit                  = "HOURLY"
   format                     = "Parquet"
   compression                = "Parquet"
   additional_schema_elements = []
-  s3_bucket                  = aws_s3_bucket.billing_report_bucket.bucket
-  s3_region                  = aws_s3_bucket.billing_report_bucket.region
+  s3_bucket                  = aws_s3_bucket.billing_report_bucket_test.bucket
+  s3_region                  = aws_s3_bucket.billing_report_bucket_test.region
   s3_prefix                  = "reportresult"
   report_versioning          = "OVERWRITE_REPORT"
 }
 
 # AWS Glue 데이터 카탈로그 생성
-resource "aws_glue_catalog_database" "billing_database" {
-  name = "billing_database"
+resource "aws_glue_catalog_database" "billing_database_test" {
+  name = "billing_database_test"
 }
 
 # crawler 생성
-resource "aws_glue_crawler" "cur_s3_crawler" {
-  database_name = aws_glue_catalog_database.billing_database.name
-  name          = "cur_s3_crawler"
-  role          = aws_iam_role.glue_crawler_role.arn
+resource "aws_glue_crawler" "cur_s3_crawler_test" {
+  database_name = aws_glue_catalog_database.billing_database_test.name
+  name          = "cur_s3_crawler_test"
+  role          = aws_iam_role.glue_crawler_role_test.arn
   schedule      = "cron(0 1 * * ? *)"
 
   s3_target {
-    path = "s3://${aws_s3_bucket.billing_report_bucket.bucket}"
+    path = "s3://${aws_s3_bucket.billing_report_bucket_test.bucket}"
     exclusions = [ 
       "**.yml",
       "**.csv",
@@ -128,8 +117,8 @@ resource "aws_glue_crawler" "cur_s3_crawler" {
 }
 
 # role 생성
-resource "aws_iam_role" "glue_crawler_role" {
-  name = "glue-crawler-role"
+resource "aws_iam_role" "glue_crawler_role_test" {
+  name = "glue-crawler-role-test"
 
   assume_role_policy = jsonencode({
     "Version": "2012-10-17",
@@ -144,9 +133,9 @@ resource "aws_iam_role" "glue_crawler_role" {
     ]})
 }
 
-resource "aws_iam_role_policy" "glue_log_policy" {
+resource "aws_iam_role_policy" "glue_log_policy_test" {
   name   = "glue-log-policy"
-  role = aws_iam_role.glue_crawler_role.name
+  role = aws_iam_role.glue_crawler_role_test.name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -174,7 +163,7 @@ resource "aws_iam_role_policy" "glue_log_policy" {
 }
 
 # crawler role에 S3FullAccess 정책 추가
-resource "aws_iam_role_policy_attachment" "glue_crawler_s3_policy" {
+resource "aws_iam_role_policy_attachment" "glue_crawler_s3_policy_test" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-  role       = aws_iam_role.glue_crawler_role.name
+  role       = aws_iam_role.glue_crawler_role_test.name
 }
