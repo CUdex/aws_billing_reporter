@@ -8,9 +8,10 @@ import datetime
 #access key 테스트용
 def read_keys():
     # 파일을 읽기 모드로 엽니다.
-    file = open("/etc/app.conf", "r")
-    content = file.readlines()
-    file.close()
+    path = r'C:\Users\sumone\app.txt'
+    with open(path, 'r') as file:
+        content = file.readlines()
+
     result = {}
 
     for origin in content:
@@ -22,7 +23,13 @@ def read_keys():
 
 #amazon sns에 전달
 def send_sns(massage: str):
-    print(f'{massage} won')
+    sns_client = boto3.client('sns', region_name='ap-northeast-2')
+    topics = sns_client.list_topics()
+    topic_arn = next(topic['TopicArn'] for topic in topics['Topics'] if 'billing_report' in topic['TopicArn'])
+    sns_client.publish(
+        TopicArn=topic_arn,
+        Message=massage
+    )
 
 #환율 정보를 기반으로 달러에서 원화로 변경 값 반환
 def exchange_won(dollar: str):
@@ -57,7 +64,7 @@ def time_select():
 aws_key = read_keys()
 
 # Create a client object for athena service
-client = boto3.client('athena', region_name='us-east-1', aws_access_key_id=aws_key['access_key'], aws_secret_access_key=aws_key['secret_key'])
+client = boto3.client('athena', region_name='us-east-1')
 
 # where 조건으로 줄 날짜
 time = time_select()
@@ -99,4 +106,5 @@ won = exchange_won(df.iloc[0].values[0])
 if not won:
     print("fail exchange")
 else:
-    send_sns(won)
+    result = str(won) + "원이 사용되었습니다."
+    send_sns(result)
