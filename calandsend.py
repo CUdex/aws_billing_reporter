@@ -6,20 +6,20 @@ import requests
 import datetime
 
 #access key 테스트용
-def read_keys():
-    # 파일을 읽기 모드로 엽니다.
-    path = r'C:\Users\sumone\app.txt'
-    with open(path, 'r') as file:
-        content = file.readlines()
+# def read_keys():
+#     # 파일을 읽기 모드로 엽니다.
+#     path = r'C:\Users\sumone\app.txt'
+#     with open(path, 'r') as file:
+#         content = file.readlines()
 
-    result = {}
+#     result = {}
 
-    for origin in content:
-        split_origin = origin.split('=')
-        split_origin[1] = split_origin[1].rstrip('\n')
-        result[split_origin[0]] = split_origin[1]
+#     for origin in content:
+#         split_origin = origin.split('=')
+#         split_origin[1] = split_origin[1].rstrip('\n')
+#         result[split_origin[0]] = split_origin[1]
     
-    return result
+#     return result
 
 #amazon sns에 전달
 def send_sns(massage: str):
@@ -61,7 +61,7 @@ def time_select():
     return result
 
 
-aws_key = read_keys()
+#aws_key = read_keys()
 
 # Create a client object for athena service
 client = boto3.client('athena', region_name='us-east-1')

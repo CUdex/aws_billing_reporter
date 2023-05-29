@@ -1,5 +1,4 @@
 variable "admin_email_address" {
-  type = "string"
   default = "cuyu9779@gmail.com"
 }
 
