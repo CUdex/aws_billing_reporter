@@ -100,11 +100,10 @@ response = client.get_query_results(QueryExecutionId=query_id)
 rows = response['ResultSet']['Rows']
 data = [[col['VarCharValue'] for col in row['Data']] for row in rows[1:]]
 
-# Convert the dictionary to a dataframe
-df = pd.DataFrame(data)
-won = exchange_won(df.iloc[0].values[0])
+won = exchange_won(data[0][0])
 if not won:
     print("fail exchange")
 else:
     result = str(won) + "원이 사용되었습니다."
-    send_sns(result)
+    print(result)
+    #send_sns(result)

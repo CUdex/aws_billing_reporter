@@ -44,7 +44,6 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "athena.amazonaws.com"
         }
         Resource  = [
-          "${aws_s3_bucket.billing_report_bucket.arn}",
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       },
@@ -62,7 +61,6 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "billingreports.amazonaws.com"
         }
         Resource  = [
-          "${aws_s3_bucket.billing_report_bucket.arn}",
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       },
@@ -80,7 +78,19 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "glue.amazonaws.com"
         }
         Resource  = [
-          "${aws_s3_bucket.billing_report_bucket.arn}",
+          "${aws_s3_bucket.billing_report_bucket.arn}/*"
+        ]
+      },
+            {
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject"
+        ]
+        Effect    = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Resource  = [
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       }
