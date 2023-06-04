@@ -1,4 +1,3 @@
-variable "test_region" {}
 variable "billing_region" {}
 variable "test_access_key" {}
 variable "test_secret_key" {}
