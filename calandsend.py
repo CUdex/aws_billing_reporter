@@ -1,25 +1,7 @@
-#https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD 환율정보 받아오는 곳 basePrice 사용
 import boto3
-import pandas as pd
 import json
 import requests
 import datetime
-
-#access key 테스트용
-# def read_keys():
-#     # 파일을 읽기 모드로 엽니다.
-#     path = r'C:\Users\sumone\app.txt'
-#     with open(path, 'r') as file:
-#         content = file.readlines()
-
-#     result = {}
-
-#     for origin in content:
-#         split_origin = origin.split('=')
-#         split_origin[1] = split_origin[1].rstrip('\n')
-#         result[split_origin[0]] = split_origin[1]
-    
-#     return result
 
 #amazon sns에 전달
 def send_sns(massage: str):
@@ -32,6 +14,7 @@ def send_sns(massage: str):
     )
 
 #환율 정보를 기반으로 달러에서 원화로 변경 값 반환
+#https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD 환율정보 받아오는 곳 basePrice 사용
 def exchange_won(dollar: str):
     url = 'https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD'
     response = requests.get(url=url)
@@ -60,50 +43,48 @@ def time_select():
 
     return result
 
+def main_handler(event, context):
+    # Create a client object for athena service
+    client = boto3.client('athena', region_name='us-east-1')
 
-#aws_key = read_keys()
+    # where 조건으로 줄 날짜
+    time = time_select()
+    start_time = time[0]
+    end_time = time[1]
 
-# Create a client object for athena service
-client = boto3.client('athena', region_name='us-east-1')
+    # Execute a query and get the query execution ID
+    response = client.start_query_execution(
+        QueryString=f"SELECT sum(line_item_blended_cost) FROM billing_database.reportresult WHERE identity_time_interval = '{start_time}/{end_time}'",
+        QueryExecutionContext={
+            'Database': 'billing_database'
+        },
+        ResultConfiguration={
+            'OutputLocation': 's3://billing-report-bucket-genians/'
+        }
+    )
 
-# where 조건으로 줄 날짜
-time = time_select()
-start_time = time[0]
-end_time = time[1]
+    query_id = response['QueryExecutionId']
 
-# Execute a query and get the query execution ID
-response = client.start_query_execution(
-    QueryString=f"SELECT sum(line_item_blended_cost) FROM billing_database.reportresult WHERE identity_time_interval = '{start_time}/{end_time}'",
-    QueryExecutionContext={
-        'Database': 'billing_database'
-    },
-    ResultConfiguration={
-        'OutputLocation': 's3://billing-report-bucket-genians/'
-    }
-)
+    # Wait for the query to complete and get the output location
+    status = 'RUNNING'
+    while not status == 'SUCCEEDED':
+        response = client.get_query_execution(QueryExecutionId=query_id)
+        status = response['QueryExecution']['Status']['State']
+        if status == 'FAILED' or status == 'CANCELLED':
+            raise Exception('Query failed or cancelled')
 
-query_id = response['QueryExecutionId']
+    output_location = response['QueryExecution']['ResultConfiguration']['OutputLocation']
+    print('Query output location:', output_location)
 
-# Wait for the query to complete and get the output location
-status = 'RUNNING'
-while not status == 'SUCCEEDED':
-    response = client.get_query_execution(QueryExecutionId=query_id)
-    status = response['QueryExecution']['Status']['State']
-    if status == 'FAILED' or status == 'CANCELLED':
-        raise Exception('Query failed or cancelled')
+    # Get the query results as a dictionary
+    response = client.get_query_results(QueryExecutionId=query_id)
+    rows = response['ResultSet']['Rows']
+    data = [[col['VarCharValue'] for col in row['Data']] for row in rows[1:]]
 
-output_location = response['QueryExecution']['ResultConfiguration']['OutputLocation']
-print('Query output location:', output_location)
-
-# Get the query results as a dictionary
-response = client.get_query_results(QueryExecutionId=query_id)
-rows = response['ResultSet']['Rows']
-data = [[col['VarCharValue'] for col in row['Data']] for row in rows[1:]]
-
-won = exchange_won(data[0][0])
-if not won:
-    print("fail exchange")
-else:
-    result = str(won) + "원이 사용되었습니다."
-    print(result)
-    #send_sns(result)
+    won = exchange_won(data[0][0])
+    if not won:
+        print("fail exchange")
+    else:
+        result = str(won) + "원이 사용되었습니다."
+        print(result)
+        send_sns(result)

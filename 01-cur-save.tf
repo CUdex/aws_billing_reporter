@@ -32,9 +32,6 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
     Statement = [
       {
         Action = [
-          "s3:GetBucketAcl",
-          "s3:GetBucketLocation",
-          "s3:GetBucketPolicy",
           "s3:GetObject",
           "s3:ListBucket",
           "s3:PutObject"
@@ -44,14 +41,12 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "athena.amazonaws.com"
         }
         Resource  = [
+          "${aws_s3_bucket.billing_report_bucket.arn}",
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       },
       {
         Action = [
-          "s3:GetBucketAcl",
-          "s3:GetBucketLocation",
-          "s3:GetBucketPolicy",
           "s3:GetObject",
           "s3:ListBucket",
           "s3:PutObject"
@@ -61,14 +56,12 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "billingreports.amazonaws.com"
         }
         Resource  = [
+          "${aws_s3_bucket.billing_report_bucket.arn}",
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       },
       {
         Action = [
-          "s3:GetBucketAcl",
-          "s3:GetBucketLocation",
-          "s3:GetBucketPolicy",
           "s3:GetObject",
           "s3:ListBucket",
           "s3:PutObject"
@@ -78,6 +71,7 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "glue.amazonaws.com"
         }
         Resource  = [
+          "${aws_s3_bucket.billing_report_bucket.arn}",
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       },
@@ -91,6 +85,7 @@ resource "aws_s3_bucket_policy" "billing_report_bucket_policy" {
           Service = "lambda.amazonaws.com"
         }
         Resource  = [
+          "${aws_s3_bucket.billing_report_bucket.arn}",
           "${aws_s3_bucket.billing_report_bucket.arn}/*"
         ]
       }
@@ -116,7 +111,7 @@ resource "aws_glue_catalog_database" "billing_database" {
   name = "billing_database"
 }
 
-# crawler 생성
+#crawler 생성
 resource "aws_glue_crawler" "cur_s3_crawler" {
   database_name = aws_glue_catalog_database.billing_database.name
   name          = "cur_s3_crawler"
@@ -128,6 +123,7 @@ resource "aws_glue_crawler" "cur_s3_crawler" {
     exclusions = [ 
       "**.yml",
       "**.csv",
+      "**.metadata",
       "**/cost_and_usage_data_status/**",
       "**.sql",
       "**.json",
